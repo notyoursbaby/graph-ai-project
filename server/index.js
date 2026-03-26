@@ -56,30 +56,30 @@ app.get('/graph', (req, res) => {
   const nodes = [];
   const edges = [];
 
-  db.all("SELECT * FROM orders LIMIT 50", (err, orders) => {
-    orders.forEach(o => {
-      nodes.push({
-        data: { id: `order-${o.id}`, label: `Order ${o.id}` }
-      });
+  const orders = db.prepare("SELECT * FROM orders LIMIT 50").all();
 
-      edges.push({
-        data: {
-          source: `customer-${o.customer_id}`,
-          target: `order-${o.id}`
-        }
-      });
+  orders.forEach(o => {
+    nodes.push({
+      data: { id: `order-${o.id}`, label: `Order ${o.id}` }
     });
 
-    db.all("SELECT * FROM customers LIMIT 50", (err, customers) => {
-      customers.forEach(c => {
-        nodes.push({
-          data: { id: `customer-${c.id}`, label: c.name }
-        });
-      });
-
-      res.json({ nodes, edges });
+    edges.push({
+      data: {
+        source: `customer-${o.customer_id}`,
+        target: `order-${o.id}`
+      }
     });
   });
+
+  const customers = db.prepare("SELECT * FROM customers LIMIT 50").all();
+
+  customers.forEach(c => {
+    nodes.push({
+      data: { id: `customer-${c.id}`, label: c.name }
+    });
+  });
+
+  res.json({ nodes, edges });
 });
  
 app.listen(5000, () => console.log("Server running on port 5000"));

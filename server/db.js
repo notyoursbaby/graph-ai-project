@@ -1,6 +1,8 @@
-const sqlite3 = require('sqlite3').verbose();
+const Database = require('better-sqlite3');
 
-const db = new sqlite3.Database('./data.db');
+const db = new Database('data.db');
+
+module.exports = db;
 
 db.serialize(() => {
   db.run(`
