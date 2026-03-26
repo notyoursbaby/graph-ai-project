@@ -1,3 +1,16 @@
+const fs = require("fs");
+
+// load JSONL data
+function loadJSONL(file) {
+  const data = fs.readFileSync(`./data/${file}`, "utf-8")
+    .split("\n")
+    .filter(Boolean)
+    .map(JSON.parse);
+  return data;
+}
+
+const orders = loadJSONL("sales_order_headers.jsonl");
+const customers = loadJSONL("business_partners.jsonl");
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -15,50 +28,41 @@ app.get('/', (req, res) => {
 });
 
 // QUERY API
-app.post('/query', async (req, res) => {
+app.post("/query", (req, res) => {
   const { question } = req.body;
 
-  // guardrail
-  if (!question.match(/order|customer|delivery|payment/i)) {
+  if (!question.match(/order/i)) {
     return res.json({
-      answer: "Only dataset-related queries allowed."
+      answer: "Only dataset-related queries"
     });
   }
 
-  try {
-    let sql = await askLLM(question);
+  const match = question.match(/\d+/);
 
-// remove ```sql ``` and extra formatting
-    sql = sql.replace(/```sql|```/g, "").trim();
+  if (!match) {
+    return res.json({ answer: "No order id found" });
+  }
 
-    console.log("Generated SQL:", sql);   
+  const id = match[0];
 
-    db.all(sql, (err, rows) => {
-      if (err) return res.json({ error: err.message });
+  const result = orders.filter(o => o.id == id);
 
-      const answer = rows.length
-  ? `Found ${rows.length} result(s). Example: ${JSON.stringify(rows[0])}`
-  : "No data found.";
+  const answer = result.length
+    ? `Order ${id} belongs to customer ${result[0].customer_id}`
+    : "No data found";
 
-res.json({
-  answer,
-  sql,
-  result: rows,
-  highlightIds: rows.map(r => `order-${r.id}`)
+  res.json({
+    answer,
+    result,
+    highlightIds: [`order-${id}`]
+  });
 });
-    });
-  } catch (err) {
-  console.log("FULL ERROR:", err.response?.data || err.message);
-  res.json({ error: err.response?.data || err.message });
-}
-});
-app.get('/graph', (req, res) => {
+
+app.get("/graph", (req, res) => {
   const nodes = [];
   const edges = [];
 
-  const orders = db.prepare("SELECT * FROM orders LIMIT 50").all();
-
-  orders.forEach(o => {
+  orders.slice(0, 50).forEach(o => {
     nodes.push({
       data: { id: `order-${o.id}`, label: `Order ${o.id}` }
     });
@@ -71,9 +75,7 @@ app.get('/graph', (req, res) => {
     });
   });
 
-  const customers = db.prepare("SELECT * FROM customers LIMIT 50").all();
-
-  customers.forEach(c => {
+  customers.slice(0, 50).forEach(c => {
     nodes.push({
       data: { id: `customer-${c.id}`, label: c.name }
     });
@@ -81,5 +83,5 @@ app.get('/graph', (req, res) => {
 
   res.json({ nodes, edges });
 });
- 
+
 app.listen(5000, () => console.log("Server running on port 5000"));
