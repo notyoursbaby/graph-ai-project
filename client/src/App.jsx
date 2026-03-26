@@ -10,7 +10,7 @@ function App() {
   const [response, setResponse] = useState("");
 
   useEffect(() => {
-    axios.get("https://graph-ai-project.onrender.com//graph").then((res) => {
+    axios.get("https://graph-ai-project.onrender.com/graph").then((res) => {
       const cy = cytoscape({
         container: cyRef.current,
         elements: [...res.data.nodes, ...res.data.edges],
@@ -65,7 +65,7 @@ function App() {
   }, []);
 
   const ask = async () => {
-  const res = await axios.post("https://graph-ai-project.onrender.com//query", {
+  const res = await axios.post("https://graph-ai-project.onrender.com/query", {
     question,
   });
 
