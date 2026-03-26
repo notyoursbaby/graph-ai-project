@@ -1,11 +1,16 @@
 const fs = require("fs");
 
 // load JSONL data
+const path = require("path");
+
 function loadJSONL(file) {
-  const data = fs.readFileSync(`./data/${file}`, "utf-8")
+  const filePath = path.join(__dirname, "data", file);
+
+  const data = fs.readFileSync(filePath, "utf-8")
     .split("\n")
     .filter(Boolean)
     .map(JSON.parse);
+
   return data;
 }
 
@@ -14,10 +19,7 @@ const customers = loadJSONL("business_partners.jsonl");
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const db = require('./db');
 const askLLM = require('./llm');
-
-require('dotenv').config();
 
 const app = express();
 app.use(cors());
@@ -84,4 +86,6 @@ app.get("/graph", (req, res) => {
   res.json({ nodes, edges });
 });
 
-app.listen(5000, () => console.log("Server running on port 5000"));
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => console.log(`Server running on ${PORT}`));
